@@ -1,0 +1,2 @@
+# Multi-Algorithm-CPU-Scheduler-for-Operating-System-Simulation
+Designed and implemented a CPU scheduling simulator supporting FCFS, SJF, Priority, and Round Robin algorithms with performance metrics like waiting time and turnaround time. • Compared performance metrics like (throughput, waiting time, CPU idle chart) for each scheduling algorithms. • Addressed CPU starvation using aging techniques.
