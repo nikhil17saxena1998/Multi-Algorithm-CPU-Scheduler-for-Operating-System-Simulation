@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Algorithm CPU Scheduler Simulator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">⚡</div>
+                <h1>Multi-Algorithm CPU Scheduler</h1>
+                <span class="badge">OS Simulator</span>
+            </div>
+            <div class="header-actions">
+                <button id="preset-starve-btn" class="btn btn-secondary">Starvation Preset</button>
+                <button id="preset-normal-btn" class="btn btn-secondary">Standard Preset</button>
+                <button id="reset-all-btn" class="btn btn-danger">Reset All</button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard-grid">
+
+            <!-- Left Panel: Process Input and Configuration -->
+            <section class="panel glass-panel input-config-panel">
+                <div class="panel-header">
+                    <h2>⚙️ Control Panel</h2>
+                </div>
+
+                <div class="panel-body">
+                    <!-- Config Form -->
+                    <div class="control-group">
+                        <label for="algo-select">Scheduling Algorithm</label>
+                        <select id="algo-select">
+                            <option value="fcfs">First-Come, First-Served (FCFS)</option>
+                            <option value="sjf-np">Shortest Job First (SJF - Non-Preemptive)</option>
+                            <option value="sjf-p">Shortest Remaining Time First (SRTF - Preemptive SJF)</option>
+                            <option value="priority-np">Priority (Non-Preemptive) with Aging</option>
+                            <option value="priority-p" selected>Priority (Preemptive) with Aging</option>
+                            <option value="rr">Round Robin (RR)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-row double-fields">
+                        <div class="control-group" id="quantum-group" style="display: none;">
+                            <label for="quantum-input">RR Quantum (t)</label>
+                            <input type="number" id="quantum-input" value="3" min="1" max="100">
+                        </div>
+                        <div class="control-group" id="aging-group">
+                            <label for="aging-input">Aging Interval (t)</label>
+                            <input type="number" id="aging-input" value="5" min="1" max="100">
+                        </div>
+                    </div>
+
+                    <!-- Process Input Form -->
+                    <div class="process-form-container">
+                        <h3>📥 Add Process</h3>
+                        <div class="form-row">
+                            <div class="control-group mini">
+                                <label for="input-arrival">Arrival</label>
+                                <input type="number" id="input-arrival" value="0" min="0" max="999">
+                            </div>
+                            <div class="control-group mini">
+                                <label for="input-burst">Burst</label>
+                                <input type="number" id="input-burst" value="5" min="1" max="999">
+                            </div>
+                            <div class="control-group mini" id="input-priority-group">
+                                <label for="input-priority">Priority</label>
+                                <input type="number" id="input-priority" value="3" min="0" max="99">
+                            </div>
+                            <button id="add-proc-btn" class="btn btn-primary add-btn">+</button>
+                        </div>
+                        <span class="note">*Priority: lower value = higher priority.</span>
+                    </div>
+
+                    <!-- Process Queue Management -->
+                    <div class="process-queue-container">
+                        <h3>📋 Current Process Queue</h3>
+                        <div class="table-scroll-wrapper">
+                            <table id="proc-input-table">
+                                <thead>
+                                    <tr>
+                                        <th>PID</th>
+                                        <th>Arrival Time</th>
+                                        <th>Burst Time</th>
+                                        <th>Priority</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="proc-input-body">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Center Panel: Live Gantt & Execution Logs -->
+            <section class="panel glass-panel execution-panel">
+                <div class="panel-header">
+                    <h2>🎬 Active Workspace</h2>
+                    <div class="sim-speed-control">
+                        <label for="speed-range">Speed:</label>
+                        <input type="range" id="speed-range" min="100" max="2000" value="500" step="100" dir="rtl">
+                        <span id="speed-val">0.5s</span>
+                    </div>
+                </div>
+
+                <div class="panel-body flex-column">
+                    <!-- Simulation Interactive Controls -->
+                    <div class="sim-controls">
+                        <button id="btn-play" class="btn btn-success icon-btn">▶ Run</button>
+                        <button id="btn-pause" class="btn btn-warning icon-btn" disabled>⏸ Pause</button>
+                        <button id="btn-step" class="btn btn-info icon-btn">⏭ Step</button>
+                        <button id="btn-stop" class="btn btn-danger icon-btn">⏹ Stop / Reset</button>
+                        <button id="btn-compare-all" class="btn btn-accent">📊 Run & Compare All</button>
+                    </div>
+
+                    <!-- Live Progress State -->
+                    <div class="live-progress-stats">
+                        <div class="progress-card">
+                            <span class="stat-lbl">Time Clock</span>
+                            <span class="stat-val" id="live-clock">0</span>
+                        </div>
+                        <div class="progress-card">
+                            <span class="stat-lbl">Active PID</span>
+                            <span class="stat-val text-accent" id="live-active-pid">-</span>
+                        </div>
+                        <div class="progress-card">
+                            <span class="stat-lbl">Aging Triggered</span>
+                            <span class="stat-val text-warning" id="live-aging-counter">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Gantt Chart Renderer -->
+                    <div class="gantt-visualizer-container">
+                        <h3>📊 Gantt Chart Progress</h3>
+                        <div class="gantt-chart-viewport" id="gantt-viewport">
+                            <!-- Dynamic blocks -->
+                            <div class="gantt-empty-state">Click Run or Step to visualize process scheduling</div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- Bottom Left Panel: Process Outcome Metrics -->
+            <section class="panel glass-panel table-panel">
+                <div class="panel-header">
+                    <h2>📊 Performance Metrics</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="table-scroll-wrapper outcomes">
+                        <table id="proc-output-table">
+                            <thead>
+                                <tr>
+                                    <th>PID</th>
+                                    <th>Arrival</th>
+                                    <th>Burst</th>
+                                    <th>Priority</th>
+                                    <th>Completion</th>
+                                    <th>Turnaround (TAT)</th>
+                                    <th>Waiting (WT)</th>
+                                    <th>Response (RT)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="proc-output-body">
+                                <tr>
+                                    <td colspan="8" class="text-center muted">No simulation metrics computed yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom Right Panel: Summary Analytics and Comparisons -->
+            <section class="panel glass-panel stats-comparison-panel">
+                <div class="panel-header">
+                    <h2>📈 Analytics Dashboard</h2>
+                </div>
+                <div class="panel-body flex-column">
+                    <!-- Standard metrics summary cards -->
+                    <div class="summary-cards-container">
+                        <div class="metric-card">
+                            <span class="card-title">Avg Waiting Time</span>
+                            <span class="card-val" id="metric-avg-wt">0.00</span>
+                            <span class="card-unit">time units</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="card-title">Avg Turnaround Time</span>
+                            <span class="card-val" id="metric-avg-tat">0.00</span>
+                            <span class="card-unit">time units</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="card-title">Throughput</span>
+                            <span class="card-val" id="metric-throughput">0.00</span>
+                            <span class="card-unit">proc/unit time</span>
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Dynamic algorithm comparative bar chart -->
+                    <div class="comparison-visualizer-container" id="comparison-view" style="display: none;">
+                        <h3>📊 Multi-Algorithm Performance Comparison</h3>
+                        <div class="comparison-tabs">
+                            <button class="tab-btn active" data-compare="wt">Avg WT</button>
+                            <button class="tab-btn" data-compare="tat">Avg TAT</button>
+                            <button class="tab-btn" data-compare="throughput">Throughput</button>
+                        </div>
+                        <div class="comparison-chart" id="comparison-chart-bars">
+                            <!-- Comparison bars are drawn here dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Code Script -->
+    <script src="app.js"></script>
+</body>
+
+</html>
